@@ -10,4 +10,5 @@ urlpatterns = [
     path('api/employees/', include('apps.employees.urls')),
     path('api/core/', include('apps.core.urls')),
     path('api/notifications/', include('apps.notifications.urls')),
+    path('api/master/', include('apps.master.urls')),
 ]

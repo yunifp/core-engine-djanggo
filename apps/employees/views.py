@@ -1,19 +1,30 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, filters
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import Employee
 from .serializers import EmployeeSerializer
 from apps.accounts.permissions import HasDynamicPermission
 from apps.core.models import ActivityLog
 from apps.notifications.models import Notification
-from rest_framework import filters
-from django_filters.rest_framework import DjangoFilterBackend
 
 class EmployeeViewSet(viewsets.ModelViewSet):
-    queryset = Employee.objects.select_related('user').all()
+    queryset = Employee.objects.select_related('user', 'department', 'position').order_by('-created_at')
+    
     serializer_class = EmployeeSerializer
     permission_classes = [HasDynamicPermission]
-    search_fields = ['employee_id', 'user__first_name', 'user__last_name', 'department']
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
+    
+    search_fields = [
+        'employee_id', 
+        'user__first_name', 
+        'user__last_name', 
+        'user__email',
+        'department__name', 
+        'position__name'    
+    ]
+    
     filterset_fields = ['department', 'position']
     ordering_fields = ['salary', 'hire_date', 'created_at']
+
     def get_client_ip(self):
         x_forwarded_for = self.request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:

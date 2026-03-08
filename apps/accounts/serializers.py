@@ -14,10 +14,24 @@ class RoleSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     role_detail = RoleSerializer(source='role', read_only=True)
+    
+    permissions = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'password', 'role', 'role_detail', 'is_active']
+        # 2. Pastikan 'permissions' dimasukkan ke dalam daftar fields
+        fields = [
+            'id', 'email', 'first_name', 'last_name', 
+            'password', 'role', 'role_detail', 'is_active', 
+            'permissions'
+        ]
         extra_kwargs = {'password': {'write_only': True}} 
+
+    # 3. Fungsi ini akan otomatis mengekstrak nama (name) dari relasi permission
+    def get_permissions(self, obj):
+        if obj.role and obj.role.permissions.exists():
+            return list(obj.role.permissions.values_list('name', flat=True))
+        return []
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)

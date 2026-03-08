@@ -22,6 +22,7 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.select_related('role').all()
     serializer_class = UserSerializer
     permission_classes = [HasDynamicPermission]
+
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def me(self, request):
         """
@@ -35,12 +36,19 @@ class UserViewSet(viewsets.ModelViewSet):
         
         if user.role:
             role_name = user.role.name
-            permissions_list = list(user.role.permissions.values_list('name', flat=True))
+            
+            # BYPASS SUPERADMIN: Jika rolenya Superadmin, berikan SEMUA permission yang ada di sistem
+            if role_name.lower() == 'superadmin':
+                permissions_list = list(Permission.objects.values_list('name', flat=True))
+            else:
+                permissions_list = list(user.role.permissions.values_list('name', flat=True))
+                
         response_data = serializer.data
         response_data['frontend_sidebar_access'] = permissions_list
         response_data['role_name'] = role_name
 
         return Response(response_data)
+    
 class LogoutAPIView(APIView):
         """
         Endpoint untuk menghancurkan (blacklist) Refresh Token.
