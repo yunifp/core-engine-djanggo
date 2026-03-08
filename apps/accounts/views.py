@@ -7,11 +7,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from .pagination import DynamicPageSizePagination
 
 class PermissionViewSet(viewsets.ModelViewSet):
-    queryset = Permission.objects.all()
+    queryset = Permission.objects.all().order_by('id')
     serializer_class = PermissionSerializer
     permission_classes = [HasDynamicPermission]
+    pagination_class = DynamicPageSizePagination
 
 class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.all()
