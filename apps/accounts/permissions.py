@@ -8,22 +8,16 @@ class HasDynamicPermission(permissions.BasePermission):
         if not request.user.role:
             return False
 
-        # 1. Jalur VVIP untuk Super Admin
         role_name = request.user.role.name.lower()
-        if role_name == 'super admin' or role_name == 'superadmin':
+        if role_name in ['super admin', 'superadmin']:
             return True
 
-        # 2. Ambil semua izin yang dimiliki user dari database
         user_permissions = request.user.role.permissions.values_list('name', flat=True)
 
-        # 3. Ambil nama model/view secara dinamis (misal: 'employee', 'department')
-        # view.basename biasanya berisi nama endpoint yang didaftarkan di router
         app_label = view.basename if hasattr(view, 'basename') else None
-        
         if not app_label:
             return False
 
-        # 4. Petakan method ke aksi (view, add, change, delete)
         method_mapping = {
             'GET': 'view',
             'POST': 'add',
@@ -31,11 +25,8 @@ class HasDynamicPermission(permissions.BasePermission):
             'PATCH': 'change',
             'DELETE': 'delete'
         }
+        
         action = method_mapping.get(request.method)
-
-        # 5. Konstruksi nama permission secara dinamis
-        # Contoh: can_view_employee, can_add_department, dll.
         required_permission = f"can_{action}_{app_label}"
 
-        # 6. Cek apakah string ini ada di dalam daftar izin di database
         return required_permission in user_permissions
