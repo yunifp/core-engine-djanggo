@@ -1,29 +1,40 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, filters
 from .models import User, Role, Permission
 from .serializers import UserSerializer, RoleSerializer, PermissionSerializer
 from .permissions import HasDynamicPermission
+from .pagination import DynamicPageSizePagination
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from .pagination import DynamicPageSizePagination
 
 class PermissionViewSet(viewsets.ModelViewSet):
     queryset = Permission.objects.all().order_by('id')
     serializer_class = PermissionSerializer
     permission_classes = [HasDynamicPermission]
     pagination_class = DynamicPageSizePagination
+    
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', 'description']
 
 class RoleViewSet(viewsets.ModelViewSet):
-    queryset = Role.objects.all()
+    queryset = Role.objects.all().order_by('id')
     serializer_class = RoleSerializer
     permission_classes = [HasDynamicPermission]
+    pagination_class = DynamicPageSizePagination
+    
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', 'description']
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.select_related('role').all()
+    queryset = User.objects.select_related('role').all().order_by('-id')
     serializer_class = UserSerializer
     permission_classes = [HasDynamicPermission]
+    pagination_class = DynamicPageSizePagination
+    
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['first_name', 'last_name', 'email', 'role__name']
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def me(self, request):
@@ -34,7 +45,6 @@ class UserViewSet(viewsets.ModelViewSet):
         if user.role:
             role_name = user.role.name.lower()
             if role_name in ['super admin', 'superadmin', 'admin']:
-                from .models import Permission
                 permissions_list = list(Permission.objects.values_list('name', flat=True))
             else:
                 permissions_list = list(user.role.permissions.values_list('name', flat=True))
@@ -50,10 +60,10 @@ class LogoutAPIView(APIView):
         try:
             refresh_token = request.data.get("refresh")
             if not refresh_token:
-                return Response({"error": "Refresh token wajib disertakan"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "Refresh token wajib disertakan"}, status=400)
                 
             token = RefreshToken(refresh_token)
             token.blacklist() 
-            return Response({"message": "Logout berhasil."}, status=status.HTTP_205_RESET_CONTENT)
+            return Response({"message": "Logout berhasil."}, status=205)
         except Exception:
-            return Response({"error": "Token tidak valid."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Token tidak valid."}, status=400)
